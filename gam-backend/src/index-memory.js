@@ -334,6 +334,69 @@ app.post('/api/automations', authenticateToken, (req, res) => {
   }
 });
 
+// Step execution routes
+app.post('/api/steps/execute-step', authenticateToken, async (req, res) => {
+  try {
+    const { step, inputData = null } = req.body;
+    
+    if (!step || !step.id || !step.type) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Step object with id and type is required',
+          status: 400
+        }
+      });
+    }
+
+    // Simulate step execution
+    const result = {
+      stepId: step.id,
+      success: true,
+      data: {
+        message: `Step ${step.name} executed successfully (simulated)`,
+        type: step.type,
+        config: step.config,
+        inputData,
+        outputData: { result: 'Success', timestamp: new Date().toISOString() }
+      },
+      executionTime: Math.floor(Math.random() * 2000) + 500, // Random 500-2500ms
+      timestamp: new Date().toISOString(),
+      logs: [
+        `Starting execution of step: ${step.name}`,
+        `Step type: ${step.type}`,
+        `Execution completed successfully`
+      ],
+      error: null
+    };
+
+    logger.info('Step executed (simulated)', {
+      stepId: step.id,
+      stepType: step.type,
+      userId: req.user.id
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    logger.error('Step execution failed', {
+      error: error.message,
+      userId: req.user?.id
+    });
+
+    res.status(500).json({
+      success: false,
+      error: {
+        message: error.message,
+        status: 500
+      }
+    });
+  }
+});
+
 // API info endpoint
 app.get('/api', (req, res) => {
   res.status(200).json({

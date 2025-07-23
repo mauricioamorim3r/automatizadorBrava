@@ -32,6 +32,8 @@ interface CanvasEditorProps {
   onStepsChange: (steps: StepNode[]) => void;
   onSave: () => void;
   onExecute: () => void;
+  selectedStepId?: string;
+  onStepSelect?: (stepId: string | null) => void;
   isReadOnly?: boolean;
 }
 
@@ -41,20 +43,45 @@ const STEP_TYPES: Record<string, { color: string; label: string; icon: string }>
     label: 'Manual Input',
     icon: '📝'
   },
+  SOURCE_FILE: {
+    color: '#4CAF50',
+    label: 'File Input',
+    icon: '📄'
+  },
+  SOURCE_API: {
+    color: '#4CAF50',
+    label: 'API Input',
+    icon: '🌐'
+  },
   FILTER_SIMPLE: { 
     color: '#2196F3', 
     label: 'Simple Filter',
     icon: '🔍'
+  },
+  FILTER_ADVANCED: {
+    color: '#2196F3',
+    label: 'Advanced Filter',
+    icon: '🔬'
   },
   ACTION_TRANSFORM: { 
     color: '#FF9800', 
     label: 'Transform',
     icon: '⚙️'
   },
+  ACTION_BROWSER: {
+    color: '#FF9800',
+    label: 'Browser Action',
+    icon: '🌐'
+  },
   DESTINATION_FILE: { 
     color: '#9C27B0', 
     label: 'Save File',
     icon: '💾'
+  },
+  DESTINATION_EMAIL: {
+    color: '#9C27B0',
+    label: 'Send Email',
+    icon: '📧'
   }
 };
 
@@ -67,10 +94,12 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
   onStepsChange,
   onSave,
   onExecute,
+  selectedStepId,
+  onStepSelect,
   isReadOnly = false
 }) => {
   const stageRef = useRef<Konva.Stage>(null);
-  const [selectedStep, setSelectedStep] = useState<string | null>(null);
+  const [selectedStep, setSelectedStep] = useState<string | null>(selectedStepId || null);
   const [draggedStep, setDraggedStep] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStart, setConnectionStart] = useState<{ stepId: string; port: string } | null>(null);
@@ -78,6 +107,11 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [history, setHistory] = useState<StepNode[][]>([steps]);
   const [historyIndex, setHistoryIndex] = useState(0);
+
+  // Sync external selection with internal state
+  useEffect(() => {
+    setSelectedStep(selectedStepId || null);
+  }, [selectedStepId]);
 
   // Handle window resize
   useEffect(() => {
@@ -247,6 +281,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
     // If clicking on empty stage, deselect step and cancel connection
     if (e.target === e.target.getStage()) {
       setSelectedStep(null);
+      onStepSelect?.(null);
       if (isConnecting) {
         setIsConnecting(false);
         setConnectionStart(null);
@@ -270,7 +305,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
         onDragStart={() => setDraggedStep(step.id)}
         onDragMove={(e) => handleStepDragMove(e, step.id)}
         onDragEnd={() => handleStepDragEnd()}
-        onClick={() => setSelectedStep(step.id)}
+        onClick={() => {
+          setSelectedStep(step.id);
+          onStepSelect?.(step.id);
+        }}
       >
         {/* Step background */}
         <Rect
@@ -413,10 +451,18 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
           {!isReadOnly && (
             <>
               <IconButton onClick={() => addStep('SOURCE_MANUAL_INPUT')} title="Add Manual Input">
-                <Add />
+                📝
               </IconButton>
               
-              <IconButton onClick={() => addStep('FILTER_SIMPLE')} title="Add Filter">
+              <IconButton onClick={() => addStep('SOURCE_FILE')} title="Add File Input">
+                📄
+              </IconButton>
+              
+              <IconButton onClick={() => addStep('SOURCE_API')} title="Add API Input">
+                🌐
+              </IconButton>
+              
+              <IconButton onClick={() => addStep('FILTER_SIMPLE')} title="Add Simple Filter">
                 🔍
               </IconButton>
               
@@ -424,8 +470,16 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = ({
                 ⚙️
               </IconButton>
               
+              <IconButton onClick={() => addStep('ACTION_BROWSER')} title="Add Browser Action">
+                🌍
+              </IconButton>
+              
               <IconButton onClick={() => addStep('DESTINATION_FILE')} title="Add File Output">
                 💾
+              </IconButton>
+              
+              <IconButton onClick={() => addStep('DESTINATION_EMAIL')} title="Add Email Output">
+                📧
               </IconButton>
               
               <IconButton 
