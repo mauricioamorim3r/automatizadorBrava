@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: gam_postgres
+    environment:
+      POSTGRES_DB: gam_db
+      POSTGRES_USER: gam_user
+      POSTGRES_PASSWORD: gam_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - gam_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: gam_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gam_network
+    command: redis-server --appendonly yes
+
+  backend:
+    build:
+      context: ./gam-backend
+      dockerfile: Dockerfile
+    container_name: gam_backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://gam_user:gam_password@postgres:5432/gam_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: gam_jwt_secret_change_in_production
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./gam-backend:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - gam_network
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./gam-frontend
+      dockerfile: Dockerfile
+    container_name: gam_frontend
+    environment:
+      VITE_API_URL: http://localhost:3001/api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gam-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - gam_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  gam_network:
+    driver: bridge
